@@ -2,7 +2,7 @@
 deps:
 	cd src && dep ensure
 
-build:
+build: deps
 	go build src/cmd/main.go
 
 run:

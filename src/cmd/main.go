@@ -24,8 +24,10 @@ func newRange(s, e int) []int {
 
 func main() {
   numbers := newRange(0, 10)
+  sum := 0
 
   for _, num := range numbers {
-    pp.Println(fib(num))
+    sum += fib(num)
   }
+	pp.Println(sum)
 }
