@@ -1,4 +1,3 @@
-
 deps:
 	cd src && dep ensure
 
@@ -10,3 +9,10 @@ run:
 
 test:
 	go test -v ./...
+
+mutation-deps:
+	go get -t -v github.com/zimmski/go-mutesting/...
+
+go-mutesting:
+	go-mutesting ./src/cmd/main.go
+
