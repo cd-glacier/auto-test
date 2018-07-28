@@ -5,14 +5,7 @@ build: deps
 	go build src/cmd/main.go
 
 run:
-	go run src/cmd/main.go
+	go run src/cmd/main.go --target ./testdata/test.go
 
 test:
 	go test -v ./...
-
-mutation-deps:
-	go get -t -v github.com/zimmski/go-mutesting/...
-
-go-mutesting:
-	go-mutesting ./src/cmd/main.go
-
