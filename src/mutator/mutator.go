@@ -1,14 +1,25 @@
 package mutator
 
 import (
-	"go/ast"
 	"go/token"
+
+	"github.com/sirupsen/logrus"
 )
 
-func PlusToMinus(expr *ast.BinaryExpr) *ast.BinaryExpr {
-	if expr.Op == token.ADD {
-		expr.Op = token.SUB
-	}
+type Mutator struct {
+	log     *logrus.Logger
+	mutated []token.Pos
+}
 
-	return expr
+func New(log *logrus.Logger, mutated []token.Pos) *Mutator {
+	return &Mutator{log, mutated}
+}
+
+func contain(target token.Pos, positions []token.Pos) bool {
+	for _, pos := range positions {
+		if pos == target {
+			return true
+		}
+	}
+	return false
 }
