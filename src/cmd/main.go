@@ -3,6 +3,8 @@ package main
 import (
 	"go/format"
 	"go/token"
+	"os/exec"
+	"strings"
 
 	"github.com/g-hyoga/auto-test/src/logger"
 	"github.com/g-hyoga/auto-test/src/mutator"
@@ -19,6 +21,7 @@ func main() {
 	src := "./src/cmd"
 
 	filenames, mutatedDir := prepare(src)
+	mutatedDir = "./" + mutatedDir
 
 	for _, filename := range filenames {
 		err := mutate(filename)
@@ -28,6 +31,8 @@ func main() {
 			}).Error("[main] failed to mutate")
 		}
 	}
+
+	test(mutatedDir)
 
 	postProcess(mutatedDir)
 
@@ -84,6 +89,27 @@ func mutate(filename string) error {
 		return err
 	}
 	return nil
+}
+
+func test(dir string) {
+	cmd := exec.Command("go", "test", "-v", dir)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		if strings.Contains(string(out), "--- FAIL:") {
+			log.WithFields(logrus.Fields{
+				"output": "\n" + string(out),
+			}).Info("[main] failed your test")
+		} else {
+			log.WithFields(logrus.Fields{
+				"dir":       dir,
+				"error_msg": err,
+				"output":    "\n" + string(out),
+			}).Error("[ERROR] failed to run test")
+		}
+
+	}
+
+	log.Info("[main] finish to run test")
 }
 
 func postProcess(tmp string) {
