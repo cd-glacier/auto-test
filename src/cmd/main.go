@@ -62,8 +62,6 @@ func mutate(filename string) error {
 		"filename": filename,
 	}).Info("[main] mutate go code")
 
-	filename = "./src/mutated_cmd/mutated_main.go"
-
 	m := mutator.New(log, mutated)
 	f, err := m.ParseFile(filename)
 	if err != nil {

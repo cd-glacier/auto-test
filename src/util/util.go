@@ -29,7 +29,7 @@ func FindMutateFile(src string) ([]string, error) {
 		if !obj.IsDir() &&
 			!strings.Contains(obj.Name(), "_test.go") &&
 			strings.Contains(obj.Name(), ".go") {
-			foundFiles = append(foundFiles, obj.Name())
+			foundFiles = append(foundFiles, filepath.Join(src, obj.Name()))
 		}
 	}
 
