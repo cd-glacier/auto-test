@@ -4,6 +4,7 @@ import (
 	"go/token"
 
 	"github.com/g-hyoga/auto-test/src/logger"
+	"github.com/g-hyoga/auto-test/src/mutator"
 	"github.com/g-hyoga/auto-test/src/util"
 	"github.com/sirupsen/logrus"
 )
@@ -16,6 +17,20 @@ var (
 func main() {
 	src := "./src/cmd"
 
+	copiedDir := prepare(src)
+	err := mutate(copiedDir)
+	if err != nil {
+		log.WithFields(logrus.Fields{
+			"error_msg": err.Error(),
+		}).Error("[main] failed to mutate")
+	}
+
+	postProcess(copiedDir)
+
+	log.Info("[DONE] created mutated go code")
+}
+
+func prepare(src string) string {
 	copiedDir, err := util.CreateMutatedDir(src)
 	if err != nil {
 		log.WithFields(logrus.Fields{
@@ -29,33 +44,41 @@ func main() {
 		"created_dir": copiedDir,
 	}).Debug("[main] create dir for mutation testing")
 
-	err = util.DeleteMuatedDir(copiedDir)
+	return copiedDir
+}
+
+func mutate(dir string) error {
+	log.WithFields(logrus.Fields{
+		"target_dir": dir,
+	}).Info("[main] mutate go code")
+
+	filename := "./src/mutated_cmd/mutated_main.go"
+
+	m := mutator.New(log, mutated)
+	f, err := m.ParseFile(filename)
 	if err != nil {
-		log.WithFields(logrus.Fields{
-			"copiedDir": copiedDir,
-			"error_msg": err,
-		}).Error("[ERROR] failed to delete mutated dirs")
+		return err
 	}
 
-	/*
-		filename, err := util.FindMutateTarget(copiedDir)
-		if err != nil {
-			log.WithFields(logrus.Fields{
-				"error_msg": err,
-			}).Error("[ERROR] not found target go code to mutate")
-			panic("[ERROR] not found target go code to mutate")
-		}
+	for _, decl := range f.Decls {
+		m.MutateDecl(decl)
+	}
 
-		log.WithFields(logrus.Fields{
-			"filename": filename,
-		}).Debug("[main] mutation testing starts")
-	*/
-
-	log.Info("[DONE] created mutated go code")
+	return nil
 }
 
 func add(x, y int) int {
 	return x + y
+}
+
+func postProcess(tmp string) {
+	err := util.DeleteMuatedDir(tmp)
+	if err != nil {
+		log.WithFields(logrus.Fields{
+			"copiedDir": tmp,
+			"error_msg": err,
+		}).Error("[ERROR] failed to delete mutated dirs")
+	}
 }
 
 func hoge(x int) (int, error) {
