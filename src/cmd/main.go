@@ -30,7 +30,6 @@ func main() {
 		}).Error("[main] Failed to parser.ParseFile")
 		panic("[ERROR] failed to parse Go file. Can your Go file compile?")
 	}
-	output := f
 
 	m := mutator.New(log, mutated)
 
@@ -50,8 +49,22 @@ func main() {
 			}
 		}
 	}
+	file, err := os.Create("./src/cmd/main1.go")
+	if err != nil {
+		log.WithFields(logrus.Fields{
+			"error_msg": err.Error(),
+		}).Error("[ERROR] failed to create out file")
+	}
+	defer file.Close()
 
-	format.Node(os.Stdout, token.NewFileSet(), output)
+	err = format.Node(file, token.NewFileSet(), f)
+	if err != nil {
+		log.WithFields(logrus.Fields{
+			"error_msg": err.Error(),
+		}).Error("[ERROR] failed to write file")
+	}
+
+	log.Info("[DONE] created mutated go code")
 }
 
 func add(x, y int) int {

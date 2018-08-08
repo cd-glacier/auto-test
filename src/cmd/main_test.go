@@ -1,13 +1,12 @@
 package main
 
-import "testing"
+import (
+	"testing"
+)
 
 func TestHoge(t *testing.T) {
-	if num, _ := hoge(0); num != 6 {
+	if num, _ := hoge(0); num != -7 {
 		t.Fatal("miss")
 	}
 
-	if num, _ := hoge(2); num != 8 {
-		t.Fatal("miss")
-	}
 }
