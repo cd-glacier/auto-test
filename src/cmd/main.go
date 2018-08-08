@@ -1,14 +1,10 @@
 package main
 
 import (
-	"go/ast"
-	"go/format"
-	"go/parser"
 	"go/token"
-	"os"
 
 	"github.com/g-hyoga/auto-test/src/logger"
-	"github.com/g-hyoga/auto-test/src/mutator"
+	"github.com/g-hyoga/auto-test/src/util"
 	"github.com/sirupsen/logrus"
 )
 
@@ -18,51 +14,42 @@ var (
 )
 
 func main() {
-	filename := "./src/cmd/main.go"
+	src := "./src/cmd"
+
+	copiedDir, err := util.CreateMutatedDir(src)
+	if err != nil {
+		log.WithFields(logrus.Fields{
+			"src":       src,
+			"error_msg": err,
+		}).Error("[ERROR] failed to create mutated dirs")
+		panic("[ERROR] failed to create mutated dirs")
+	}
+
 	log.WithFields(logrus.Fields{
-		"filename": filename,
-	}).Debug("[main] log start")
+		"created_dir": copiedDir,
+	}).Debug("[main] create dir for mutation testing")
 
-	f, err := parser.ParseFile(token.NewFileSet(), filename, nil, parser.AllErrors)
+	err = util.DeleteMuatedDir(copiedDir)
 	if err != nil {
 		log.WithFields(logrus.Fields{
-			"error_msg": err.Error(),
-		}).Error("[main] Failed to parser.ParseFile")
-		panic("[ERROR] failed to parse Go file. Can your Go file compile?")
+			"copiedDir": copiedDir,
+			"error_msg": err,
+		}).Error("[ERROR] failed to delete mutated dirs")
 	}
 
-	m := mutator.New(log, mutated)
-
-	for _, decl := range f.Decls {
-		switch d := decl.(type) {
-		case *ast.FuncDecl:
-			if d.Name.Name != "main" {
-
-				log.WithFields(logrus.Fields{
-					"func_name": d.Name.Name,
-				}).Debug("[Decl] func is found")
-
-				for _, stmt := range d.Body.List {
-					m.MutateStmt(stmt)
-				}
-
-			}
+	/*
+		filename, err := util.FindMutateTarget(copiedDir)
+		if err != nil {
+			log.WithFields(logrus.Fields{
+				"error_msg": err,
+			}).Error("[ERROR] not found target go code to mutate")
+			panic("[ERROR] not found target go code to mutate")
 		}
-	}
-	file, err := os.Create("./src/cmd/main1.go")
-	if err != nil {
-		log.WithFields(logrus.Fields{
-			"error_msg": err.Error(),
-		}).Error("[ERROR] failed to create out file")
-	}
-	defer file.Close()
 
-	err = format.Node(file, token.NewFileSet(), f)
-	if err != nil {
 		log.WithFields(logrus.Fields{
-			"error_msg": err.Error(),
-		}).Error("[ERROR] failed to write file")
-	}
+			"filename": filename,
+		}).Debug("[main] mutation testing starts")
+	*/
 
 	log.Info("[DONE] created mutated go code")
 }
