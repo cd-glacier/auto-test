@@ -4,12 +4,41 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/g-hyoga/auto-test/src/logger"
 	"github.com/sirupsen/logrus"
 )
 
 var log = logger.New()
+
+func FindMutateFile(src string) ([]string, error) {
+	foundFiles := []string{}
+
+	directory, err := os.Open(src)
+	if err != nil {
+		return foundFiles, err
+	}
+
+	objects, err := directory.Readdir(-1)
+	if err != nil {
+		return foundFiles, err
+	}
+
+	for _, obj := range objects {
+		if !obj.IsDir() &&
+			!strings.Contains(obj.Name(), "_test.go") &&
+			strings.Contains(obj.Name(), ".go") {
+			foundFiles = append(foundFiles, obj.Name())
+		}
+	}
+
+	log.WithFields(logrus.Fields{
+		"files": foundFiles,
+	}).Debug("[util] found mutate files")
+
+	return foundFiles, nil
+}
 
 func DeleteMuatedDir(dir string) error {
 	return os.RemoveAll(dir)

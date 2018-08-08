@@ -17,20 +17,23 @@ var (
 func main() {
 	src := "./src/cmd"
 
-	copiedDir := prepare(src)
-	err := mutate(copiedDir)
-	if err != nil {
-		log.WithFields(logrus.Fields{
-			"error_msg": err.Error(),
-		}).Error("[main] failed to mutate")
+	filenames, mutatedDir := prepare(src)
+
+	for _, filename := range filenames {
+		err := mutate(filename)
+		if err != nil {
+			log.WithFields(logrus.Fields{
+				"error_msg": err.Error(),
+			}).Error("[main] failed to mutate")
+		}
 	}
 
-	postProcess(copiedDir)
+	postProcess(mutatedDir)
 
 	log.Info("[DONE] created mutated go code")
 }
 
-func prepare(src string) string {
+func prepare(src string) ([]string, string) {
 	copiedDir, err := util.CreateMutatedDir(src)
 	if err != nil {
 		log.WithFields(logrus.Fields{
@@ -44,15 +47,22 @@ func prepare(src string) string {
 		"created_dir": copiedDir,
 	}).Debug("[main] create dir for mutation testing")
 
-	return copiedDir
+	filenames, err := util.FindMutateFile(copiedDir)
+	if err != nil {
+		log.WithFields(logrus.Fields{
+			"error_msg": err.Error(),
+		}).Error("[main] failed to find mutate file")
+	}
+
+	return filenames, copiedDir
 }
 
-func mutate(dir string) error {
+func mutate(filename string) error {
 	log.WithFields(logrus.Fields{
-		"target_dir": dir,
+		"filename": filename,
 	}).Info("[main] mutate go code")
 
-	filename := "./src/mutated_cmd/mutated_main.go"
+	filename = "./src/mutated_cmd/mutated_main.go"
 
 	m := mutator.New(log, mutated)
 	f, err := m.ParseFile(filename)
@@ -67,10 +77,6 @@ func mutate(dir string) error {
 	return nil
 }
 
-func add(x, y int) int {
-	return x + y
-}
-
 func postProcess(tmp string) {
 	err := util.DeleteMuatedDir(tmp)
 	if err != nil {
@@ -79,9 +85,4 @@ func postProcess(tmp string) {
 			"error_msg": err,
 		}).Error("[ERROR] failed to delete mutated dirs")
 	}
-}
-
-func hoge(x int) (int, error) {
-	y := add(1+2, 3)
-	return x + (1 - (2 + y)), nil
 }
