@@ -4,8 +4,8 @@ import (
 	"testing"
 )
 
-func TestHoge(t *testing.T) {
-	if num, _ := hoge(0); num != -7 {
+func TestMutation(t *testing.T) {
+	if num := mutationTest(0); num != 6 {
 		t.Fatal("miss")
 	}
 

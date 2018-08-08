@@ -12,6 +12,15 @@ import (
 
 var log = logger.New()
 
+func ReWrite(filename string) (*os.File, error) {
+	err := os.Remove(filename)
+	if err != nil {
+		return nil, err
+	}
+
+	return os.Create(filename)
+}
+
 func FindMutateFile(src string) ([]string, error) {
 	foundFiles := []string{}
 

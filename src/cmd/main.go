@@ -1,6 +1,7 @@
 package main
 
 import (
+	"go/format"
 	"go/token"
 
 	"github.com/g-hyoga/auto-test/src/logger"
@@ -72,6 +73,16 @@ func mutate(filename string) error {
 		m.MutateDecl(decl)
 	}
 
+	file, err := util.ReWrite(filename)
+	defer file.Close()
+	if err != nil {
+		return err
+	}
+
+	format.Node(file, token.NewFileSet(), f)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
@@ -83,4 +94,9 @@ func postProcess(tmp string) {
 			"error_msg": err,
 		}).Error("[ERROR] failed to delete mutated dirs")
 	}
+}
+
+func mutationTest(y int) int {
+	x := 3 + y
+	return 1 + 2 + x
 }
