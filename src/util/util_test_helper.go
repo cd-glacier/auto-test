@@ -31,12 +31,14 @@ func (e *TestEnv) createTestEnv() error {
 		}
 	}
 
-	for _, filename := range e.filenames {
+	for i, filename := range e.filenames {
 		fp := filepath.Join(e.dirname, filename)
 		file, err := os.Create(fp)
 		if err != nil {
 			return err
 		}
+
+		file.Write([]byte(e.contents[i]))
 
 		func() { defer file.Close() }()
 	}
