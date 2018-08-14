@@ -121,8 +121,3 @@ func postProcess(tmp string) {
 		}).Error("[ERROR] failed to delete mutated dirs")
 	}
 }
-
-func mutationTest(y int) int {
-	x := 3 + y
-	return 1 + 2 + x
-}
