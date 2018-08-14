@@ -7,8 +7,11 @@ import (
 )
 
 func TestCopyFile(t *testing.T) {
-	e := TestEnv{filenames: []string{"tmp.g0", "tmp_test.g0"}, dirname: "tmp-dir"}
-	err := e.createTestEnv()
+	e, err := NewEnv([]string{"tmp.g0", "tmp_test.g0"}, []string{"hoge", "foo"}, "tmp-dir")
+	if err != nil {
+		t.Fatalf("Failed to NewEnv %s", err.Error())
+	}
+	err = e.createTestEnv()
 	if err != nil {
 		t.Fatalf("Failed to createTestEnv %s", err.Error())
 	}

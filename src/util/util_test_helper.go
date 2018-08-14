@@ -1,13 +1,26 @@
 package util
 
 import (
+	"errors"
 	"os"
 	"path/filepath"
 )
 
 type TestEnv struct {
 	filenames []string
+	contents  []string
 	dirname   string
+}
+
+func NewEnv(filenames, contents []string, dirname string) (*TestEnv, error) {
+	if len(filenames) != len(contents) {
+		return nil, errors.New("Failed to util.NewEnv. filenames and contents length is invalid")
+	}
+	e := &TestEnv{}
+	e.filenames = filenames
+	e.contents = contents
+	e.dirname = dirname
+	return e, nil
 }
 
 func (e *TestEnv) createTestEnv() error {
