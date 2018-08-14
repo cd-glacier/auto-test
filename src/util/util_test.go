@@ -7,52 +7,69 @@ import (
 )
 
 func TestCopyFile(t *testing.T) {
-	// preparation
 	e, err := NewEnv([]string{"tmp.g0"}, []string{"hoge"}, "tmp-dir")
 	if err != nil {
 		t.Fatalf("Failed to NewEnv %s", err.Error())
 	}
+
+	tests := []struct {
+		inputFilename    string
+		inputContent     string
+		expectedFilename string
+		expectedContent  string
+	}{
+		{
+			e.filenames[0],
+			e.contents[0],
+			"copied_file",
+			e.contents[0],
+		},
+	}
+
+	// preparation
 	err = e.createTestEnv()
 	if err != nil {
 		t.Fatalf("Failed to createTestEnv %s", err.Error())
 	}
 	defer e.closeTestEnv()
 
-	// execution
-	fp := filepath.Join(e.dirname, e.filenames[0])
-	filename := "copied_file"
-	err = copyFile(fp, filename)
-	if err != nil {
-		t.Fatalf("Failed to util.copyFile %s", err.Error())
-	}
-
-	defer func(filename string) {
-		err = os.Remove(filename)
+	for _, test := range tests {
+		// execution
+		fp := filepath.Join(e.dirname, test.inputFilename)
+		err = copyFile(fp, test.expectedFilename)
 		if err != nil {
-			t.Fatalf("failed to os.Remove %s: %s", filename, err.Error())
+			t.Fatalf("Failed to util.copyFile %s", err.Error())
 		}
-	}(filename)
 
-	// inspection
-	info, err := os.Stat(filename)
-	if err != nil {
-		t.Fatalf("failed to os.Stat %s: %s", filename, err.Error())
-	}
-	if info.Name() != filename {
-		t.Fatalf("failed to util.copyFile. copyFile name is invalid %s: %s", filename, err.Error())
+		defer func(filename string) {
+			err = os.Remove(filename)
+			if err != nil {
+				t.Fatalf("failed to os.Remove %s: %s", filename, err.Error())
+			}
+		}(test.expectedFilename)
+
+		// inspection
+		info, err := os.Stat(test.expectedFilename)
+		if err != nil {
+			t.Fatalf("failed to os.Stat %s: %s", test.expectedFilename, err.Error())
+		}
+		if info.Name() != test.expectedFilename {
+			t.Fatalf("failed to util.copyFile. copyFile name is invalid %s: %s", test.expectedFilename, err.Error())
+		}
+
+		file, err := os.Open(fp)
+		defer file.Close()
+		buf := make([]byte, len(test.inputContent))
+		n, err := file.Read(buf)
+		if n == 0 {
+			t.Fatalf("failed to util.copyFile. %s content is null", fp)
+		}
+		if err != nil {
+			t.Fatalf("failed to util.copyFile. os.Open %s: %s", fp, err.Error())
+		}
+		if string(buf) != test.inputContent {
+			t.Fatalf("failed to util.copyFile. %s content is invalid. expected: %s, actual: %s.", fp, test.inputContent, string(buf))
+		}
 	}
 
-	file, err := os.Open(fp)
-	defer file.Close()
-	buf := make([]byte, len(e.contents[0]))
-	n, err := file.Read(buf)
-	if n == 0 {
-		t.Fatalf("failed to util.copyFile. %s content is null", fp)
-	}
-	if err != nil {
-		t.Fatalf("failed to util.copyFile. os.Open %s: %s", fp, err.Error())
-	}
-	if string(buf) != e.contents[0] {
-		t.Fatalf("failed to util.copyFile. %s content is invalid. expected: %s, actual: %s.", fp, e.contents[0], string(buf))
-	}
 }
