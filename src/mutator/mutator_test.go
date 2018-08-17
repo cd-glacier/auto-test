@@ -8,8 +8,14 @@ import (
 
 	"github.com/g-hyoga/auto-test/src/logger"
 	"github.com/g-hyoga/auto-test/src/operator"
-	"github.com/k0kubun/pp"
 )
+
+func TestParseFile(t *testing.T) {
+	_, err := ParseFile("./mutator_test.go")
+	if err != nil {
+		t.Fatalf("Failed to mutatot.ParseFile. %s\n", err)
+	}
+}
 
 func TestMutate(t *testing.T) {
 	input := `
@@ -17,8 +23,7 @@ package main
 
 func add() int {
 	a := 1
-	a += 1
-	return a
+	return a + 2
 }
 `
 
@@ -28,9 +33,9 @@ func add() int {
 	}
 
 	tests := []struct {
-		code        *ast.File
+		file        *ast.File
 		operators   []operator.Type
-		mutatedCode *ast.File
+		mutatedFile *ast.File
 	}{
 		{
 			f,
@@ -42,13 +47,11 @@ func add() int {
 	}
 
 	for _, test := range tests {
-		m := New(test.code, test.operators, logger.New())
-		mutatedFile, err := m.mutate()
+		m := New(test.file, test.operators, logger.New())
+		_, err := m.Mutate()
 		if err != nil {
 			t.Fatalf("Failed to mutator.mutate. %s\n", err.Error())
 		}
-
-		pp.Println(mutatedFile)
 
 	}
 }
