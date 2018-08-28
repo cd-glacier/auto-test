@@ -23,7 +23,7 @@ func main() {
 	}
 	m := mutator.New(f, operatorType, log)
 	m.Mutate()
-	pp.Println(m.file)
+	pp.Println(m.File)
 
 	log.Info("[main] task finished")
 }
