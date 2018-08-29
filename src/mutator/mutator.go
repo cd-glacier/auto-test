@@ -9,6 +9,7 @@ import (
 
 	"github.com/g-hyoga/auto-test/src/operator"
 	"github.com/sirupsen/logrus"
+	"github.com/ulule/deepcopier"
 )
 
 type Mutator struct {
@@ -30,7 +31,9 @@ func (m *Mutator) Mutate() []ast.File {
 		"operator_type": m.Operators,
 	}).Info("[mutator]")
 
-	originFile := *m.File
+	var originFile ast.File
+	deepcopier.Copy(m.File).To(&originFile)
+
 	mutatedFiles := []ast.File{}
 
 	for i, decl := range m.File.Decls {
@@ -41,6 +44,7 @@ func (m *Mutator) Mutate() []ast.File {
 			mutatedFiles = append(mutatedFiles, file)
 		}
 	}
+
 	return mutatedFiles
 }
 
@@ -58,7 +62,7 @@ func (m *Mutator) MutateDecl(decl ast.Decl) []ast.Decl {
 		ast.Inspect(d, func(n ast.Node) bool {
 			switch node := n.(type) {
 			case *ast.AssignStmt:
-				copiedNode := *node
+				// copiedNode := *node
 				node.Rhs = []ast.Expr{
 					&ast.BasicLit{
 						Kind:  token.INT,
@@ -68,7 +72,7 @@ func (m *Mutator) MutateDecl(decl ast.Decl) []ast.Decl {
 				// ここまではちゃんと機能してる
 				// appendができない
 				decls = append(decls, d)
-				*node = copiedNode
+				// *node = copiedNode
 
 				*d = declBeforeMutate
 			}
@@ -80,6 +84,5 @@ func (m *Mutator) MutateDecl(decl ast.Decl) []ast.Decl {
 			"func_name": d.Tok.String(),
 		}).Debug("[Decl] GenDecl is found")
 	}
-
 	return decls
 }
