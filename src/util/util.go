@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/g-hyoga/auto-test/src/logger"
+	"github.com/k0kubun/pp"
 	"github.com/sirupsen/logrus"
 )
 
@@ -21,6 +22,46 @@ func ReWrite(filename string) (*os.File, error) {
 	}
 
 	return os.Create(filename)
+}
+
+func FindPackages(src string) ([]string, error) {
+	pp.Println(src)
+	foundPackages := []string{}
+	base, _ := filepath.Split(src)
+
+	directory, err := os.Open(src)
+	if err != nil {
+		return foundPackages, err
+	}
+
+	objects, err := directory.Readdir(-1)
+	if err != nil {
+		return foundPackages, err
+	}
+
+	for _, obj := range objects {
+		if obj.IsDir() {
+			if !strings.Contains(obj.Name(), "vendor") {
+				ps, err := FindPackages(filepath.Join(base, obj.Name()))
+				if err != nil {
+					return foundPackages, err
+				}
+				foundPackages = append(foundPackages, ps...)
+			}
+		} else {
+			if !strings.Contains(obj.Name(), "test") &&
+				strings.Contains(obj.Name(), ".go") {
+				foundPackages = append(foundPackages, src)
+				break
+			}
+		}
+	}
+
+	log.WithFields(logrus.Fields{
+		"packages": foundPackages,
+	}).Debug("[util] found mutate package")
+
+	return foundPackages, nil
 }
 
 func FindMutateFile(src string) ([]string, error) {
@@ -38,7 +79,7 @@ func FindMutateFile(src string) ([]string, error) {
 
 	for _, obj := range objects {
 		if !obj.IsDir() &&
-			!strings.Contains(obj.Name(), "_test.go") &&
+			!strings.Contains(obj.Name(), "test") &&
 			strings.Contains(obj.Name(), ".go") {
 			foundFiles = append(foundFiles, filepath.Join(src, obj.Name()))
 		}
