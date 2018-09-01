@@ -5,6 +5,6 @@ import (
 )
 
 func TestMain(t *testing.T) {
-	src = "../../src/util"
+	src = "../../src/util/"
 	main()
 }

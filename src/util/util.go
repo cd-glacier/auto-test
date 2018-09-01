@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"github.com/g-hyoga/auto-test/src/logger"
-	"github.com/k0kubun/pp"
 	"github.com/sirupsen/logrus"
 )
 
@@ -25,7 +24,6 @@ func ReWrite(filename string) (*os.File, error) {
 }
 
 func FindPackages(src string) ([]string, error) {
-	pp.Println(src)
 	foundPackages := []string{}
 	base, _ := filepath.Split(src)
 
