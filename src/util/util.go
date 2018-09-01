@@ -1,6 +1,8 @@
 package util
 
 import (
+	"errors"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -49,14 +51,38 @@ func FindMutateFile(src string) ([]string, error) {
 	return foundFiles, nil
 }
 
+func GetDirFromFileName(filename string) string {
+	dir, _ := filepath.Split(filename)
+	return dir
+}
+
 func DeleteMuatedDir(dir string) error {
 	return os.RemoveAll(dir)
 }
 
-func CreateMutatedDir(src string) (string, error) {
-	prefix := "mutated_"
-	base, srcDir := filepath.Split(src)
-	destDir := filepath.Join(base, prefix+srcDir)
+func removeBlank(li []string) []string {
+	list := []string{}
+	for _, l := range li {
+		if l != "" {
+			list = append(list, l)
+		}
+	}
+	return list
+}
+
+func changeLastDirName(path []string, prefix string) []string {
+	base := path[:len(path)-1]
+	dir := path[len(path)-1]
+	base = append(base, prefix+dir)
+	return base
+}
+
+func CreateMutatedDir(prefix, src string) (string, error) {
+	li := removeBlank(strings.Split(src, "/"))
+	changedPath := changeLastDirName(li, prefix)
+
+	destDir := filepath.Join(changedPath...)
+
 	return destDir, copyDir(src, destDir, prefix)
 }
 
@@ -108,6 +134,11 @@ func copyDir(src, dest, prefix string) error {
 		srcFileName := filepath.Join(src, obj.Name())
 		destFileName := filepath.Join(dest, prefix+obj.Name())
 
+		if srcFileName == destFileName {
+			log.Errorf("[util] failed to copy dir. same name already exist: %s\n", srcFileName)
+			return errors.New(fmt.Sprintf("[util] failed to copy dir. same name already exist: %s\n", srcFileName))
+		}
+
 		if obj.IsDir() {
 			err = copyDir(srcFileName, destFileName, prefix)
 			if err != nil {
@@ -116,6 +147,7 @@ func copyDir(src, dest, prefix string) error {
 					"dest":      destFileName,
 					"error_msg": err.Error(),
 				}).Error("[util] failed to copy dir")
+				return err
 			}
 		} else {
 			err = copyFile(srcFileName, destFileName)
@@ -125,6 +157,7 @@ func copyDir(src, dest, prefix string) error {
 					"dest":      destFileName,
 					"error_msg": err.Error(),
 				}).Error("[util] failed to copy file")
+				return err
 			}
 		}
 	}
