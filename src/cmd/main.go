@@ -2,12 +2,15 @@ package main
 
 import (
 	"fmt"
+	"go/format"
+	"go/token"
 	"os"
 
 	"github.com/g-hyoga/auto-test/src/logger"
 	"github.com/g-hyoga/auto-test/src/mutator"
 	"github.com/g-hyoga/auto-test/src/operator"
 	"github.com/g-hyoga/auto-test/src/util"
+	"github.com/k0kubun/pp"
 	"github.com/sirupsen/logrus"
 )
 
@@ -41,11 +44,12 @@ func main() {
 		}
 		log.Infof("[main] created '%s' directory", mutateDir)
 
-		targetFiles, err := util.FindMutateFile(targetPackage)
+		targetFiles, err := util.FindMutateFile(mutateDir)
 		if err != nil {
 			log.Errorf("[main] Failed to util.FindMutateFile: %s", err.Error())
 			panic(fmt.Sprintf("[main] Failed to util.FindMutateFile: %s", err.Error()))
 		}
+		pp.Println(targetFiles)
 
 		for _, targetFile := range targetFiles {
 			f, err := mutator.ParseFile(targetFile)
@@ -59,7 +63,18 @@ func main() {
 				"file":          targetFile,
 				"operatorTypes": operatorType,
 			}).Infof("[main] start to mutate")
-			m.Mutate()
+			mutatedFiles := m.Mutate()
+
+			file, err := util.ReWrite(targetFile)
+			if err != nil {
+				log.Errorf("[main] Failed to util.ReWrite: %s", err.Error())
+			}
+			err = format.Node(file, token.NewFileSet(), &mutatedFiles[0])
+			if err != nil {
+				log.Errorf("[main] Failed to format.Node: %s", err.Error())
+			}
+
+			file.Close()
 		}
 
 		os.RemoveAll(mutateDir)
