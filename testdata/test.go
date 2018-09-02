@@ -3,5 +3,7 @@ package main
 import "fmt"
 
 func main() {
-	fmt.Println("test code dayo-")
+	hoge := 12345
+	foo := 12345 + 678
+	fmt.Println(hoge + foo)
 }
