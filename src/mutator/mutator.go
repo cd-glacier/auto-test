@@ -63,18 +63,21 @@ func (m *Mutator) MutateDecl(decl ast.Decl) []ast.Decl {
 			switch node := n.(type) {
 			case *ast.AssignStmt:
 				// copiedNode := *node
-				node.Rhs = []ast.Expr{
-					&ast.BasicLit{
-						Kind:  token.INT,
-						Value: strconv.Itoa(math.MaxInt64),
-					},
-				}
-				// ここまではちゃんと機能してる
-				// appendができない
-				decls = append(decls, d)
-				// *node = copiedNode
+				bl, ok := node.Rhs[0].(*ast.BasicLit)
+				if ok && bl.Kind == token.INT {
+					node.Rhs = []ast.Expr{
+						&ast.BasicLit{
+							Kind:  token.INT,
+							Value: strconv.Itoa(math.MaxInt64),
+						},
+					}
+					// ここまではちゃんと機能してる
+					// appendができない
+					decls = append(decls, d)
+					// *node = copiedNode
 
-				*d = declBeforeMutate
+					*d = declBeforeMutate
+				}
 			}
 			return true
 		})

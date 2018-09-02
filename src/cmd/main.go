@@ -10,7 +10,6 @@ import (
 	"github.com/g-hyoga/auto-test/src/mutator"
 	"github.com/g-hyoga/auto-test/src/operator"
 	"github.com/g-hyoga/auto-test/src/util"
-	"github.com/k0kubun/pp"
 	"github.com/sirupsen/logrus"
 )
 
@@ -49,7 +48,6 @@ func main() {
 			log.Errorf("[main] Failed to util.FindMutateFile: %s", err.Error())
 			panic(fmt.Sprintf("[main] Failed to util.FindMutateFile: %s", err.Error()))
 		}
-		pp.Println(targetFiles)
 
 		for _, targetFile := range targetFiles {
 			f, err := mutator.ParseFile(targetFile)

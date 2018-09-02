@@ -3,7 +3,7 @@ package main
 import "fmt"
 
 func main() {
-	hoge := 12345
-	foo := 12345 + 678
+	hoge := 1
+	foo := 2 + 3
 	fmt.Println(hoge + foo)
 }
