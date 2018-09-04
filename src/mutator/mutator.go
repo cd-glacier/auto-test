@@ -45,6 +45,10 @@ func (m *Mutator) Mutate() []ast.File {
 		}
 	}
 
+	if len(mutatedFiles) == 0 {
+		m.log.Info("[mutator] mutated file was not found.")
+	}
+
 	return mutatedFiles
 }
 

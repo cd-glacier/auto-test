@@ -34,6 +34,7 @@ func FindPackages(src string) ([]string, error) {
 
 	objects, err := directory.Readdir(-1)
 	if err != nil {
+		log.Errorf("[util] Do you assign file? If you assign file, assign directory.")
 		return foundPackages, err
 	}
 

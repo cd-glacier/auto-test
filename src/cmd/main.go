@@ -16,7 +16,7 @@ import (
 var (
 	log = logger.New()
 
-	src = "./src/cmd/"
+	src = "./testdata/"
 )
 
 func main() {
@@ -62,6 +62,9 @@ func main() {
 				"operatorTypes": operatorType,
 			}).Infof("[main] start to mutate")
 			mutatedFiles := m.Mutate()
+			if len(mutatedFiles) == 0 {
+				break
+			}
 
 			file, err := util.ReWrite(targetFile)
 			if err != nil {
