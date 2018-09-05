@@ -91,9 +91,19 @@ func FindMutateFile(src string) ([]string, error) {
 	return foundFiles, nil
 }
 
-func GetDirFromFileName(filename string) string {
+func GetDirFromFileName(filename string) (string, error) {
+	srcInfo, err := os.Stat(filename)
+	if err != nil {
+		return "", err
+	}
+
+	_, file := filepath.Split(filename)
+	if srcInfo.IsDir() && len(file) > 0 {
+		filename = filename + "/"
+	}
+
 	dir, _ := filepath.Split(filename)
-	return dir
+	return dir, nil
 }
 
 func DeleteMuatedDir(dir string) error {

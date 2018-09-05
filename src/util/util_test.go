@@ -8,12 +8,31 @@ import (
 )
 
 func TestGetDirFromFileName(t *testing.T) {
-	filename := filepath.Join("./actual/dir/file.go")
-	dirname := GetDirFromFileName(filename)
-
-	if dirname != "actual/dir/" {
-		t.Fatalf("Failed to util.GetDirFromFileName. actual=%s, expected=%s\n", dirname, "actual/dir/")
+	tests := []struct {
+		filename string
+		dirname  string
+	}{
+		{
+			"../../testdata/tomaxint/tomaxint.go",
+			"../../testdata/tomaxint/",
+		},
+		{
+			"../../testdata/tomaxint",
+			"../../testdata/tomaxint/",
+		},
 	}
+
+	for _, tt := range tests {
+		dirname, err := GetDirFromFileName(tt.filename)
+		if err != nil {
+			t.Fatalf("Failed to util.GetDirFromFileName: %s\n", err.Error())
+		}
+
+		if dirname != tt.dirname {
+			t.Fatalf("Failed to util.GetDirFromFileName. actual=%s, expected=%s\n", dirname, tt.dirname)
+		}
+	}
+
 }
 
 func TestRemoveBlank(t *testing.T) {

@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-func TestMain(t *testing.T) {
+func testMain(t *testing.T) {
 	src = "../../testdata/"
 	main()
 }

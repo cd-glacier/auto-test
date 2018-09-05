@@ -5,6 +5,8 @@ import (
 	"go/format"
 	"go/token"
 	"os"
+	"os/exec"
+	"strings"
 
 	"github.com/g-hyoga/auto-test/src/logger"
 	"github.com/g-hyoga/auto-test/src/mutator"
@@ -33,7 +35,11 @@ func main() {
 	}
 
 	for _, targetPackage := range targetPackages {
-		targetDir := util.GetDirFromFileName(targetPackage)
+		targetDir, err := util.GetDirFromFileName(targetPackage)
+		if err != nil {
+			log.Errorf("[main] Failed to util.GetDirFromFileName: %s", err.Error())
+			panic(fmt.Sprintf("[main] Failed to util.GetDirFromFileName: %s", err.Error()))
+		}
 
 		prefix := "mutated_"
 		mutateDir, err := util.CreateMutatedDir(prefix, targetDir)
@@ -75,6 +81,8 @@ func main() {
 				log.Errorf("[main] Failed to format.Node: %s", err.Error())
 			}
 
+			test(targetFile)
+
 			file.Close()
 		}
 
@@ -82,4 +90,26 @@ func main() {
 	}
 
 	log.Info("[main] task finished")
+}
+
+func test(dir string) {
+	log.Info("[main] start to run test")
+	cmd := exec.Command("go", "test", "-v", dir)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		if strings.Contains(string(out), "--- FAIL:") {
+			log.WithFields(logrus.Fields{
+				"output": "\n" + string(out),
+			}).Info("[main] failed your test")
+		} else {
+			log.WithFields(logrus.Fields{
+				"dir":       dir,
+				"error_msg": err,
+				"output":    "\n" + string(out),
+			}).Error("[main] failed to run test")
+		}
+
+	}
+
+	log.Info("[main] finish to run test")
 }
