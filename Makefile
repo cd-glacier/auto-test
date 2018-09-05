@@ -10,8 +10,8 @@ build: deps ## build main.go.
 run: ## run main.go.
 	go run src/cmd/main.go
 
-test: ## unit test.
-	go test -v ./...
+test: ## unit test with gotest. ref: github.com/rakyll/gotest
+	gotest -v ./...
 
 docker-build: ## create docker image for building code.
 	docker build -t auto-test .
