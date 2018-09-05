@@ -2,9 +2,9 @@ package tomaxint
 
 import "fmt"
 
-func addOne(x int) int {
-	y := 1
-	return x + y
+func productTwo(x int) int {
+	y := 2
+	return x * y
 }
 
 func main() {

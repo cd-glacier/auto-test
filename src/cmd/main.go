@@ -129,7 +129,10 @@ func test(dir string) bool {
 	cmd := exec.Command("go", "test", "-v", packageName)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
-		if strings.Contains(string(out), "--- FAIL:") {
+		if strings.Contains(string(out), "--- PASS:") {
+			// TODO: count test case
+			return true
+		} else if strings.Contains(string(out), "--- FAIL:") {
 			log.WithFields(logrus.Fields{
 				"output": "\n" + string(out),
 			}).Debug("[main] failed your test")
