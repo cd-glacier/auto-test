@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"go/ast"
 	"go/format"
 	"go/token"
 	"os"
@@ -47,7 +48,10 @@ func main() {
 			log.Errorf("[main] Failed to util.CreateMutatedDir: %s", err.Error())
 			panic(fmt.Sprintf("[main] Failed to util.CreateMutatedDir: %s", err.Error()))
 		}
-		log.Infof("[main] created '%s' directory", mutateDir)
+		log.WithFields(logrus.Fields{
+			"directory":     mutateDir,
+			"operatorTypes": operatorType,
+		}).Infof("[main] created '%s' directory", mutateDir)
 
 		targetFiles, err := util.FindMutateFile(mutateDir)
 		if err != nil {
@@ -71,19 +75,15 @@ func main() {
 			if len(mutatedFiles) == 0 {
 				break
 			}
+			log.Infof("[main] created %d mutated files", len(mutatedFiles))
 
-			file, err := util.ReWrite(targetFile)
+			passed, err := mutationTest(targetFile, mutatedFiles)
 			if err != nil {
-				log.Errorf("[main] Failed to util.ReWrite: %s", err.Error())
-			}
-			err = format.Node(file, token.NewFileSet(), &mutatedFiles[0])
-			if err != nil {
-				log.Errorf("[main] Failed to format.Node: %s", err.Error())
+				log.Errorf("[main] Failed to mutationTest: %s", err.Error())
 			}
 
-			test(targetFile)
+			log.Infof("[main] %d/%d passed tests are found.", len(passed), len(mutatedFiles))
 
-			file.Close()
 		}
 
 		os.RemoveAll(mutateDir)
@@ -92,7 +92,31 @@ func main() {
 	log.Info("[main] task finished")
 }
 
-func test(dir string) {
+func mutationTest(fileBeforeMutation string, mutatedFiles []ast.File) ([]ast.File, error) {
+	passedTests := []ast.File{}
+
+	for _, mutatedFile := range mutatedFiles {
+		file, err := util.ReWrite(fileBeforeMutation)
+		if err != nil {
+			log.Errorf("[main] Failed to util.ReWrite: %s", err.Error())
+			return passedTests, err
+		}
+		err = format.Node(file, token.NewFileSet(), &mutatedFile)
+		if err != nil {
+			log.Errorf("[main] Failed to format.Node: %s", err.Error())
+			return passedTests, err
+		}
+
+		if passed := test(fileBeforeMutation); passed {
+			passedTests = append(passedTests, mutatedFile)
+		}
+
+		file.Close()
+	}
+	return passedTests, nil
+}
+
+func test(dir string) bool {
 	log.WithFields(logrus.Fields{
 		"test_target": dir,
 	}).Info("[main] start to run test")
@@ -108,7 +132,8 @@ func test(dir string) {
 		if strings.Contains(string(out), "--- FAIL:") {
 			log.WithFields(logrus.Fields{
 				"output": "\n" + string(out),
-			}).Info("[main] failed your test")
+			}).Debug("[main] failed your test")
+			return false
 		} else {
 			log.WithFields(logrus.Fields{
 				"dir":       dir,
@@ -119,4 +144,10 @@ func test(dir string) {
 	}
 
 	log.Info("[main] finish to run test")
+
+	if strings.Contains(string(out), "--- PASS:") {
+		return true
+	}
+
+	return false
 }
