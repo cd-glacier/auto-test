@@ -93,8 +93,16 @@ func main() {
 }
 
 func test(dir string) {
-	log.Info("[main] start to run test")
-	cmd := exec.Command("go", "test", "-v", dir)
+	log.WithFields(logrus.Fields{
+		"test_target": dir,
+	}).Info("[main] start to run test")
+
+	packageName, err := util.GetDirFromFileName(dir)
+	if err != nil {
+		log.Errorf("[main] Failed to util.GetDirFromFileName: %s", err.Error())
+	}
+
+	cmd := exec.Command("go", "test", "-v", packageName)
 	out, err := cmd.CombinedOutput()
 	if err != nil {
 		if strings.Contains(string(out), "--- FAIL:") {
@@ -108,7 +116,6 @@ func test(dir string) {
 				"output":    "\n" + string(out),
 			}).Error("[main] failed to run test")
 		}
-
 	}
 
 	log.Info("[main] finish to run test")
