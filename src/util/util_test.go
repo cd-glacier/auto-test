@@ -3,8 +3,94 @@ package util
 import (
 	"os"
 	"path/filepath"
+	"reflect"
 	"testing"
 )
+
+func TestGetDirFromFileName(t *testing.T) {
+	filename := filepath.Join("./actual/dir/file.go")
+	dirname := GetDirFromFileName(filename)
+
+	if dirname != "actual/dir/" {
+		t.Fatalf("Failed to util.GetDirFromFileName. actual=%s, expected=%s\n", dirname, "actual/dir/")
+	}
+}
+
+func TestRemoveBlank(t *testing.T) {
+	listIncludeBlank := []string{
+		"list",
+		"",
+		"include",
+		"blank",
+		"",
+		"",
+	}
+
+	excludedList := removeBlank(listIncludeBlank)
+	for _, li := range excludedList {
+		if li == "" {
+			t.Fatalf("found blank")
+		}
+	}
+}
+
+func TestChangeLastDirName(t *testing.T) {
+	path := []string{
+		"first",
+		"second",
+		"last",
+	}
+	changed := []string{
+		"first",
+		"second",
+		"changed_last",
+	}
+	actual := changeLastDirName(path, "changed_")
+
+	if !reflect.DeepEqual(actual, changed) {
+		t.Fatalf("Failed to changeLastDirName. actual=%s, expected=%s\n", actual, changed)
+	}
+}
+
+func TestCreateMutatedDir(t *testing.T) {
+	testDirname := "TestCreateMutatedDir"
+	testFilename := "TestCreateMutatedFile"
+
+	expectedDir := "mutated_" + testDirname
+	expectedFile := "mutated_" + testFilename
+
+	err := os.Mkdir(testDirname, 0777)
+	if err != nil {
+		t.Fatalf("Error to os.Mkdir in TestCreateMutatedDir: %s\n", err.Error())
+	}
+
+	_, err = os.Create(filepath.Join(testDirname, testFilename))
+	if err != nil {
+		t.Fatalf("Error to os.Create in TestCreateMutatedDir: %s\n", err.Error())
+	}
+
+	mutatedDir, err := CreateMutatedDir("mutated_", testDirname)
+	if err != nil {
+		t.Fatalf("Error to TestCreateMutatedDir: %s\n", err.Error())
+	}
+	if mutatedDir != expectedDir {
+		t.Fatalf("Failed to TestCreateMutatedDir: actual=%s, expexted=%s\n", mutatedDir, expectedDir)
+	}
+	_, err = os.Stat(filepath.Join(expectedDir, expectedFile))
+	if err != nil {
+		t.Fatalf("Error to os.Stat in TestCreateMutatedDir: %s\n", err.Error())
+	}
+
+	err = os.RemoveAll(testDirname)
+	if err != nil {
+		t.Fatalf("Error to os.RemoveAll in TestCreateMutatedDir: %s\n", err.Error())
+	}
+
+	err = os.RemoveAll(expectedDir)
+	if err != nil {
+		t.Fatalf("Error to os.RemoveAll in TestCreateMutatedDir: %s\n", err.Error())
+	}
+}
 
 func TestCopyFile(t *testing.T) {
 	e, err := NewEnv([]string{"tmp.g0"}, []string{"hoge"}, "tmp-dir")
@@ -71,5 +157,4 @@ func TestCopyFile(t *testing.T) {
 			t.Fatalf("failed to util.copyFile. %s content is invalid. expected: %s, actual: %s.", fp, test.inputContent, string(buf))
 		}
 	}
-
 }

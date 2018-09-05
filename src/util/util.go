@@ -1,6 +1,8 @@
 package util
 
 import (
+	"errors"
+	"fmt"
 	"io"
 	"os"
 	"path/filepath"
@@ -21,6 +23,45 @@ func ReWrite(filename string) (*os.File, error) {
 	return os.Create(filename)
 }
 
+func FindPackages(src string) ([]string, error) {
+	foundPackages := []string{}
+	base, _ := filepath.Split(src)
+
+	directory, err := os.Open(src)
+	if err != nil {
+		return foundPackages, err
+	}
+
+	objects, err := directory.Readdir(-1)
+	if err != nil {
+		return foundPackages, err
+	}
+
+	for _, obj := range objects {
+		if obj.IsDir() {
+			if !strings.Contains(obj.Name(), "vendor") {
+				ps, err := FindPackages(filepath.Join(base, obj.Name()))
+				if err != nil {
+					return foundPackages, err
+				}
+				foundPackages = append(foundPackages, ps...)
+			}
+		} else {
+			if !strings.Contains(obj.Name(), "test") &&
+				strings.Contains(obj.Name(), ".go") {
+				foundPackages = append(foundPackages, src)
+				break
+			}
+		}
+	}
+
+	log.WithFields(logrus.Fields{
+		"packages": foundPackages,
+	}).Debug("[util] found mutate package")
+
+	return foundPackages, nil
+}
+
 func FindMutateFile(src string) ([]string, error) {
 	foundFiles := []string{}
 
@@ -36,7 +77,7 @@ func FindMutateFile(src string) ([]string, error) {
 
 	for _, obj := range objects {
 		if !obj.IsDir() &&
-			!strings.Contains(obj.Name(), "_test.go") &&
+			!strings.Contains(obj.Name(), "test") &&
 			strings.Contains(obj.Name(), ".go") {
 			foundFiles = append(foundFiles, filepath.Join(src, obj.Name()))
 		}
@@ -49,14 +90,21 @@ func FindMutateFile(src string) ([]string, error) {
 	return foundFiles, nil
 }
 
+func GetDirFromFileName(filename string) string {
+	dir, _ := filepath.Split(filename)
+	return dir
+}
+
 func DeleteMuatedDir(dir string) error {
 	return os.RemoveAll(dir)
 }
 
-func CreateMutatedDir(src string) (string, error) {
-	prefix := "mutated_"
-	base, srcDir := filepath.Split(src)
-	destDir := filepath.Join(base, prefix+srcDir)
+func CreateMutatedDir(prefix, src string) (string, error) {
+	li := removeBlank(strings.Split(src, "/"))
+	changedPath := changeLastDirName(li, prefix)
+
+	destDir := filepath.Join(changedPath...)
+
 	return destDir, copyDir(src, destDir, prefix)
 }
 
@@ -108,6 +156,11 @@ func copyDir(src, dest, prefix string) error {
 		srcFileName := filepath.Join(src, obj.Name())
 		destFileName := filepath.Join(dest, prefix+obj.Name())
 
+		if srcFileName == destFileName {
+			log.Errorf("[util] failed to copy dir. same name already exist: %s\n", srcFileName)
+			return errors.New(fmt.Sprintf("[util] failed to copy dir. same name already exist: %s\n", srcFileName))
+		}
+
 		if obj.IsDir() {
 			err = copyDir(srcFileName, destFileName, prefix)
 			if err != nil {
@@ -116,6 +169,7 @@ func copyDir(src, dest, prefix string) error {
 					"dest":      destFileName,
 					"error_msg": err.Error(),
 				}).Error("[util] failed to copy dir")
+				return err
 			}
 		} else {
 			err = copyFile(srcFileName, destFileName)
@@ -125,6 +179,7 @@ func copyDir(src, dest, prefix string) error {
 					"dest":      destFileName,
 					"error_msg": err.Error(),
 				}).Error("[util] failed to copy file")
+				return err
 			}
 		}
 	}

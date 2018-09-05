@@ -1,123 +1,82 @@
 package main
 
 import (
+	"fmt"
 	"go/format"
 	"go/token"
-	"os/exec"
-	"strings"
+	"os"
 
 	"github.com/g-hyoga/auto-test/src/logger"
 	"github.com/g-hyoga/auto-test/src/mutator"
+	"github.com/g-hyoga/auto-test/src/operator"
 	"github.com/g-hyoga/auto-test/src/util"
 	"github.com/sirupsen/logrus"
 )
 
 var (
-	log     = logger.New()
-	mutated = []token.Pos{}
+	log = logger.New()
+
+	src = "./src/cmd/"
 )
 
 func main() {
-	src := "./src/cmd"
+	log.Info("[main] task start")
 
-	filenames, mutatedDir := prepare(src)
-	mutatedDir = "./" + mutatedDir
+	operatorType := []operator.Type{
+		operator.TO_MAXINT,
+	}
 
-	for _, filename := range filenames {
-		err := mutate(filename)
+	targetPackages, err := util.FindPackages(src)
+	if err != nil {
+		log.Errorf("[main] Failed to util.FindMutatePackages: %s", err.Error())
+		panic(fmt.Sprintf("[main] Failed to util.FindMutatePackages: %s", err.Error()))
+	}
+
+	for _, targetPackage := range targetPackages {
+		targetDir := util.GetDirFromFileName(targetPackage)
+
+		prefix := "mutated_"
+		mutateDir, err := util.CreateMutatedDir(prefix, targetDir)
 		if err != nil {
-			log.WithFields(logrus.Fields{
-				"error_msg": err.Error(),
-			}).Error("[main] failed to mutate")
+			log.Errorf("[main] Failed to util.CreateMutatedDir: %s", err.Error())
+			panic(fmt.Sprintf("[main] Failed to util.CreateMutatedDir: %s", err.Error()))
 		}
-	}
+		log.Infof("[main] created '%s' directory", mutateDir)
 
-	test(mutatedDir)
-
-	postProcess(mutatedDir)
-
-	log.Info("[DONE] created mutated go code")
-}
-
-func prepare(src string) ([]string, string) {
-	copiedDir, err := util.CreateMutatedDir(src)
-	if err != nil {
-		log.WithFields(logrus.Fields{
-			"src":       src,
-			"error_msg": err,
-		}).Error("[ERROR] failed to create mutated dirs")
-		panic("[ERROR] failed to create mutated dirs")
-	}
-
-	log.WithFields(logrus.Fields{
-		"created_dir": copiedDir,
-	}).Debug("[main] create dir for mutation testing")
-
-	filenames, err := util.FindMutateFile(copiedDir)
-	if err != nil {
-		log.WithFields(logrus.Fields{
-			"error_msg": err.Error(),
-		}).Error("[main] failed to find mutate file")
-	}
-
-	return filenames, copiedDir
-}
-
-func mutate(filename string) error {
-	log.WithFields(logrus.Fields{
-		"filename": filename,
-	}).Info("[main] mutate go code")
-
-	m := mutator.New(log, mutated)
-	f, err := m.ParseFile(filename)
-	if err != nil {
-		return err
-	}
-
-	for _, decl := range f.Decls {
-		m.MutateDecl(decl)
-	}
-
-	file, err := util.ReWrite(filename)
-	defer file.Close()
-	if err != nil {
-		return err
-	}
-
-	format.Node(file, token.NewFileSet(), f)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func test(dir string) {
-	cmd := exec.Command("go", "test", "-v", dir)
-	out, err := cmd.CombinedOutput()
-	if err != nil {
-		if strings.Contains(string(out), "--- FAIL:") {
-			log.WithFields(logrus.Fields{
-				"output": "\n" + string(out),
-			}).Info("[main] failed your test")
-		} else {
-			log.WithFields(logrus.Fields{
-				"dir":       dir,
-				"error_msg": err,
-				"output":    "\n" + string(out),
-			}).Error("[ERROR] failed to run test")
+		targetFiles, err := util.FindMutateFile(mutateDir)
+		if err != nil {
+			log.Errorf("[main] Failed to util.FindMutateFile: %s", err.Error())
+			panic(fmt.Sprintf("[main] Failed to util.FindMutateFile: %s", err.Error()))
 		}
 
+		for _, targetFile := range targetFiles {
+			f, err := mutator.ParseFile(targetFile)
+			if err != nil {
+				log.Errorf("[main] Failed to mutator.ParseFile: %s", err.Error())
+				panic(fmt.Sprintf("[main] Failed to mutator.ParseFile: %s", err.Error()))
+			}
+			m := mutator.New(f, operatorType, log)
+
+			log.WithFields(logrus.Fields{
+				"file":          targetFile,
+				"operatorTypes": operatorType,
+			}).Infof("[main] start to mutate")
+			mutatedFiles := m.Mutate()
+
+			file, err := util.ReWrite(targetFile)
+			if err != nil {
+				log.Errorf("[main] Failed to util.ReWrite: %s", err.Error())
+			}
+			err = format.Node(file, token.NewFileSet(), &mutatedFiles[0])
+			if err != nil {
+				log.Errorf("[main] Failed to format.Node: %s", err.Error())
+			}
+
+			file.Close()
+		}
+
+		os.RemoveAll(mutateDir)
 	}
 
-	log.Info("[main] finish to run test")
-}
-
-func postProcess(tmp string) {
-	err := util.DeleteMuatedDir(tmp)
-	if err != nil {
-		log.WithFields(logrus.Fields{
-			"copiedDir": tmp,
-			"error_msg": err,
-		}).Error("[ERROR] failed to delete mutated dirs")
-	}
+	log.Info("[main] task finished")
 }
