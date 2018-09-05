@@ -2,9 +2,12 @@ package main
 
 import (
 	"fmt"
+	"go/ast"
 	"go/format"
 	"go/token"
 	"os"
+	"os/exec"
+	"strings"
 
 	"github.com/g-hyoga/auto-test/src/logger"
 	"github.com/g-hyoga/auto-test/src/mutator"
@@ -16,7 +19,7 @@ import (
 var (
 	log = logger.New()
 
-	src = "./src/cmd/"
+	src = "./testdata/"
 )
 
 func main() {
@@ -33,7 +36,11 @@ func main() {
 	}
 
 	for _, targetPackage := range targetPackages {
-		targetDir := util.GetDirFromFileName(targetPackage)
+		targetDir, err := util.GetDirFromFileName(targetPackage)
+		if err != nil {
+			log.Errorf("[main] Failed to util.GetDirFromFileName: %s", err.Error())
+			panic(fmt.Sprintf("[main] Failed to util.GetDirFromFileName: %s", err.Error()))
+		}
 
 		prefix := "mutated_"
 		mutateDir, err := util.CreateMutatedDir(prefix, targetDir)
@@ -41,7 +48,10 @@ func main() {
 			log.Errorf("[main] Failed to util.CreateMutatedDir: %s", err.Error())
 			panic(fmt.Sprintf("[main] Failed to util.CreateMutatedDir: %s", err.Error()))
 		}
-		log.Infof("[main] created '%s' directory", mutateDir)
+		log.WithFields(logrus.Fields{
+			"directory":     mutateDir,
+			"operatorTypes": operatorType,
+		}).Infof("[main] created '%s' directory", mutateDir)
 
 		targetFiles, err := util.FindMutateFile(mutateDir)
 		if err != nil {
@@ -62,21 +72,85 @@ func main() {
 				"operatorTypes": operatorType,
 			}).Infof("[main] start to mutate")
 			mutatedFiles := m.Mutate()
-
-			file, err := util.ReWrite(targetFile)
-			if err != nil {
-				log.Errorf("[main] Failed to util.ReWrite: %s", err.Error())
+			if len(mutatedFiles) == 0 {
+				break
 			}
-			err = format.Node(file, token.NewFileSet(), &mutatedFiles[0])
+			log.Infof("[main] created %d mutated files", len(mutatedFiles))
+
+			passed, err := mutationTest(targetFile, mutatedFiles)
 			if err != nil {
-				log.Errorf("[main] Failed to format.Node: %s", err.Error())
+				log.Errorf("[main] Failed to mutationTest: %s", err.Error())
 			}
 
-			file.Close()
+			log.Infof("[main] %d/%d passed tests are found.", len(passed), len(mutatedFiles))
+
 		}
 
 		os.RemoveAll(mutateDir)
 	}
 
 	log.Info("[main] task finished")
+}
+
+func mutationTest(fileBeforeMutation string, mutatedFiles []ast.File) ([]ast.File, error) {
+	passedTests := []ast.File{}
+
+	for _, mutatedFile := range mutatedFiles {
+		file, err := util.ReWrite(fileBeforeMutation)
+		if err != nil {
+			log.Errorf("[main] Failed to util.ReWrite: %s", err.Error())
+			return passedTests, err
+		}
+		err = format.Node(file, token.NewFileSet(), &mutatedFile)
+		if err != nil {
+			log.Errorf("[main] Failed to format.Node: %s", err.Error())
+			return passedTests, err
+		}
+
+		if passed := test(fileBeforeMutation); passed {
+			passedTests = append(passedTests, mutatedFile)
+		}
+
+		file.Close()
+	}
+	return passedTests, nil
+}
+
+func test(dir string) bool {
+	log.WithFields(logrus.Fields{
+		"test_target": dir,
+	}).Info("[main] start to run test")
+
+	packageName, err := util.GetDirFromFileName(dir)
+	if err != nil {
+		log.Errorf("[main] Failed to util.GetDirFromFileName: %s", err.Error())
+	}
+
+	cmd := exec.Command("go", "test", "-v", packageName)
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		if strings.Contains(string(out), "--- PASS:") {
+			// TODO: count test case
+			return true
+		} else if strings.Contains(string(out), "--- FAIL:") {
+			log.WithFields(logrus.Fields{
+				"output": "\n" + string(out),
+			}).Debug("[main] failed your test")
+			return false
+		} else {
+			log.WithFields(logrus.Fields{
+				"dir":       dir,
+				"error_msg": err,
+				"output":    "\n" + string(out),
+			}).Error("[main] failed to run test")
+		}
+	}
+
+	log.Info("[main] finish to run test")
+
+	if strings.Contains(string(out), "--- PASS:") {
+		return true
+	}
+
+	return false
 }
