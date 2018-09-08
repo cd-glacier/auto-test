@@ -4,6 +4,7 @@ import (
 	"errors"
 	"os"
 	"path/filepath"
+	"testing"
 )
 
 type TestEnv struct {
@@ -52,4 +53,11 @@ func (e *TestEnv) closeTestEnv() error {
 		return err
 	}
 	return nil
+}
+
+func remove(t *testing.T, dir string) {
+	err := os.RemoveAll(dir)
+	if err != nil {
+		t.Fatalf("Error to os.RemoveAll in TestCreateMutatedDir: %s\n", err.Error())
+	}
 }

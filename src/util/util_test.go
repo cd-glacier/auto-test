@@ -20,6 +20,10 @@ func TestGetDirFromFileName(t *testing.T) {
 			"../../testdata/tomaxint",
 			"../../testdata/tomaxint/",
 		},
+		{
+			"./../util/util.go",
+			"./../util/",
+		},
 	}
 
 	for _, tt := range tests {
@@ -72,42 +76,57 @@ func TestChangeLastDirName(t *testing.T) {
 }
 
 func TestCreateMutatedDir(t *testing.T) {
-	testDirname := "TestCreateMutatedDir"
-	testFilename := "TestCreateMutatedFile"
-
-	expectedDir := "mutated_" + testDirname
-	expectedFile := "mutated_" + testFilename
-
-	err := os.Mkdir(testDirname, 0777)
-	if err != nil {
-		t.Fatalf("Error to os.Mkdir in TestCreateMutatedDir: %s\n", err.Error())
+	tests := []struct {
+		testDirName      string
+		testFileName     string
+		expectedDirName  string
+		expectedFileName string
+	}{
+		{
+			"TestCreateMutatedDir",
+			"TestCreateMutatedFile",
+			"mutated_TestCreateMutatedDir",
+			"mutated_TestCreateMutatedFile",
+		},
+		{
+			"./TestCreateMutatedDir",
+			"TestCreateMutatedFile",
+			"./mutated_TestCreateMutatedDir",
+			"mutated_TestCreateMutatedFile",
+		},
 	}
 
-	_, err = os.Create(filepath.Join(testDirname, testFilename))
-	if err != nil {
-		t.Fatalf("Error to os.Create in TestCreateMutatedDir: %s\n", err.Error())
-	}
+	for _, tt := range tests {
+		err := os.Mkdir(tt.testDirName, 0777)
+		if err != nil {
+			t.Fatalf("Error to os.Mkdir in TestCreateMutatedDir: %s\n", err.Error())
+		}
 
-	mutatedDir, err := CreateMutatedDir("mutated_", testDirname)
-	if err != nil {
-		t.Fatalf("Error to TestCreateMutatedDir: %s\n", err.Error())
-	}
-	if mutatedDir != expectedDir {
-		t.Fatalf("Failed to TestCreateMutatedDir: actual=%s, expexted=%s\n", mutatedDir, expectedDir)
-	}
-	_, err = os.Stat(filepath.Join(expectedDir, expectedFile))
-	if err != nil {
-		t.Fatalf("Error to os.Stat in TestCreateMutatedDir: %s\n", err.Error())
-	}
+		_, err = os.Create(filepath.Join(tt.testDirName, tt.testFileName))
+		if err != nil {
+			remove(t, tt.testDirName)
+			t.Fatalf("Error to os.Create in TestCreateMutatedDir: %s\n", err.Error())
+		}
 
-	err = os.RemoveAll(testDirname)
-	if err != nil {
-		t.Fatalf("Error to os.RemoveAll in TestCreateMutatedDir: %s\n", err.Error())
-	}
-
-	err = os.RemoveAll(expectedDir)
-	if err != nil {
-		t.Fatalf("Error to os.RemoveAll in TestCreateMutatedDir: %s\n", err.Error())
+		mutatedDir, err := CreateMutatedDir("mutated_", tt.testDirName)
+		if err != nil {
+			remove(t, tt.testDirName)
+			remove(t, mutatedDir)
+			t.Fatalf("Error to TestCreateMutatedDir: %s\n", err.Error())
+		}
+		if mutatedDir != tt.expectedDirName {
+			remove(t, tt.testDirName)
+			remove(t, mutatedDir)
+			t.Fatalf("Failed to TestCreateMutatedDir: actual=%s, expexted=%s\n", mutatedDir, tt.expectedDirName)
+		}
+		_, err = os.Stat(filepath.Join(tt.expectedDirName, tt.expectedFileName))
+		if err != nil {
+			remove(t, tt.testDirName)
+			remove(t, mutatedDir)
+			t.Fatalf("Error to os.Stat in TestCreateMutatedDir: %s\n", err.Error())
+		}
+		remove(t, tt.testDirName)
+		remove(t, mutatedDir)
 	}
 }
 

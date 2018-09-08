@@ -103,6 +103,7 @@ func GetDirFromFileName(filename string) (string, error) {
 	}
 
 	dir, _ := filepath.Split(filename)
+
 	return dir, nil
 }
 
@@ -114,7 +115,7 @@ func CreateMutatedDir(prefix, src string) (string, error) {
 	li := removeBlank(strings.Split(src, "/"))
 	changedPath := changeLastDirName(li, prefix)
 
-	destDir := filepath.Join(changedPath...)
+	destDir := strings.Join(changedPath, "/")
 
 	return destDir, copyDir(src, destDir, prefix)
 }
