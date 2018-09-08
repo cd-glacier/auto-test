@@ -4,8 +4,41 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"sort"
 	"testing"
+
+	"github.com/k0kubun/pp"
 )
+
+func TestFindMutateFile(t *testing.T) {
+	tests := []struct {
+		dir        string
+		foundFiles []string
+	}{
+		{
+			"../../testdata/tomaxint/",
+			[]string{"../../testdata/tomaxint/tomaxint.go"},
+		},
+		{
+			"./",
+			[]string{"./util.go", "./util_helper.go"},
+		},
+	}
+
+	for _, tt := range tests {
+		sort.Slice(tt.foundFiles, func(i, j int) bool { return tt.foundFiles[i] > tt.foundFiles[j] })
+		pp.Println(tt.foundFiles)
+		foundFiles, err := FindMutateFile(tt.dir)
+		if err != nil {
+			t.Fatalf("Failed to util.FindMutateFile: %s", err.Error())
+		}
+
+		if !reflect.DeepEqual(foundFiles, tt.foundFiles) {
+			t.Fatalf("Failed to util.FindMutateFile: actual=%s, expected=%s", foundFiles, tt.foundFiles)
+		}
+	}
+
+}
 
 func TestGetDirFromFileName(t *testing.T) {
 	tests := []struct {
