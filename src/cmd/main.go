@@ -116,12 +116,12 @@ func mutationTest(fileBeforeMutation string, mutatedFiles []ast.File) ([]ast.Fil
 	return passedTests, nil
 }
 
-func test(dir string) bool {
+func test(file string) bool {
 	log.WithFields(logrus.Fields{
-		"test_target": dir,
+		"test_target": file,
 	}).Info("[main] start to run test")
 
-	packageName, err := util.GetDirFromFileName(dir)
+	packageName, err := util.GetDirFromFileName(file)
 	if err != nil {
 		log.Errorf("[main] Failed to util.GetDirFromFileName: %s", err.Error())
 	}
@@ -139,7 +139,7 @@ func test(dir string) bool {
 			return false
 		} else {
 			log.WithFields(logrus.Fields{
-				"dir":       dir,
+				"package":   packageName,
 				"error_msg": err,
 				"output":    "\n" + string(out),
 			}).Error("[main] failed to run test")
