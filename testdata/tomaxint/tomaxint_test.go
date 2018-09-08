@@ -14,7 +14,7 @@ func TestProductTwo(t *testing.T) {
 func TestCaseIsBad(t *testing.T) {
 	minusTwenty := productTwo(-10)
 	four := productTwo(2)
-	if four+minusTwenty < 0 {
+	if four+minusTwenty > 0 {
 		t.Fatalf("hoge")
 	}
 }
