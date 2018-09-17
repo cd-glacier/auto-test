@@ -1,9 +1,11 @@
 package operator
 
 import (
+	"math"
 	"strconv"
 
-	"github.com/rogpeppe/godef/go/ast"
+	"go/ast"
+	"go/token"
 )
 
 type Type int
@@ -16,11 +18,13 @@ type Operator struct {
 const (
 	_ = iota
 	TO_MAXINT
+	ASSIGN_SCOPE
 )
 
 var types = []string{
 	"ILLEGAL",
 	"TO_MAXINT",
+	"ASSIGN_SCOPE",
 }
 
 func (t Type) String() string {
@@ -34,17 +38,14 @@ func (t Type) String() string {
 	return s
 }
 
-func ToMaxInt(decl ast.FuncDecl) *ast.FuncDecl {
-	/*
-		ast.Inspect(decl, func(n ast.Node) bool {
-			switch node := n.(type) {
-			case *ast.AssignStmt:
-				pp.Println(node)
-			}
-
-			return true
-		})
-	*/
-
-	return &decl
+func ToMaxInt(node *ast.AssignStmt) {
+	bl, ok := node.Rhs[0].(*ast.BasicLit)
+	if ok && bl.Kind == token.INT {
+		node.Rhs = []ast.Expr{
+			&ast.BasicLit{
+				Kind:  token.INT,
+				Value: strconv.Itoa(math.MaxInt64),
+			},
+		}
+	}
 }

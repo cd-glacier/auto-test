@@ -2,6 +2,22 @@
 
 
 [[projects]]
+  branch = "master"
+  digest = "1:5c3444689562053b027ef3b96372e306adbe0d7d109b6cdd48d01eb80f8bab14"
+  name = "github.com/jinzhu/copier"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "7e38e58719c33e0d44d585c4ab477a30f8cb82dd"
+
+[[projects]]
+  digest = "1:16dd6b893b78a50564cdde1d9f7ea67224dece11bb0886bd882f1dc3dc1d440d"
+  name = "github.com/k0kubun/pp"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "027a6d1765d673d337e687394dbe780dd64e2a1e"
+  version = "v2.3.0"
+
+[[projects]]
   digest = "1:c658e84ad3916da105a761660dcaeb01e63416c8ec7bc62256a9b411a05fcd67"
   name = "github.com/mattn/go-colorable"
   packages = ["."]
@@ -24,18 +40,6 @@
   packages = ["."]
   pruneopts = "UT"
   revision = "9520e82c474b0a04dd04f8a40959027271bab992"
-
-[[projects]]
-  branch = "master"
-  digest = "1:94c2481107a3153b99a8fd487bf2a07676948357b6e47be16a8b97e11bcf4232"
-  name = "github.com/rogpeppe/godef"
-  packages = [
-    "go/ast",
-    "go/scanner",
-    "go/token",
-  ]
-  pruneopts = "UT"
-  revision = "b692db1de5229d4248e23c41736b431eb665615d"
 
 [[projects]]
   digest = "1:d867dfa6751c8d7a435821ad3b736310c2ed68945d05b50fb9d23aee0540c8cc"
@@ -84,7 +88,8 @@
   analyzer-name = "dep"
   analyzer-version = 1
   input-imports = [
-    "github.com/rogpeppe/godef/go/ast",
+    "github.com/jinzhu/copier",
+    "github.com/k0kubun/pp",
     "github.com/sirupsen/logrus",
     "github.com/ulule/deepcopier",
     "github.com/x-cray/logrus-prefixed-formatter",

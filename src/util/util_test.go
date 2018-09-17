@@ -37,7 +37,6 @@ func TestFindMutateFile(t *testing.T) {
 			t.Fatalf("Failed to util.FindMutateFile: actual=%s, expected=%s", foundFiles, tt.foundFiles)
 		}
 	}
-
 }
 
 func TestGetDirFromFileName(t *testing.T) {

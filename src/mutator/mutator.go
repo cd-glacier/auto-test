@@ -4,12 +4,10 @@ import (
 	"go/ast"
 	"go/parser"
 	"go/token"
-	"math"
-	"strconv"
 
 	"github.com/g-hyoga/auto-test/src/operator"
+	"github.com/k0kubun/pp"
 	"github.com/sirupsen/logrus"
-	"github.com/ulule/deepcopier"
 )
 
 type Mutator struct {
@@ -32,7 +30,7 @@ func (m *Mutator) Mutate() []ast.File {
 	}).Info("[mutator]")
 
 	var originFile ast.File
-	deepcopier.Copy(m.File).To(&originFile)
+	originFile = *m.File
 
 	mutatedFiles := []ast.File{}
 
@@ -41,7 +39,6 @@ func (m *Mutator) Mutate() []ast.File {
 		mutatedDecls := m.MutateDecl(decl)
 		for _, mutatedDecl := range mutatedDecls {
 			file.Decls[i] = mutatedDecl
-			mutatedFiles = append(mutatedFiles, file)
 		}
 	}
 
@@ -59,37 +56,48 @@ func (m *Mutator) MutateDecl(decl ast.Decl) []ast.Decl {
 	case *ast.FuncDecl:
 		m.log.WithFields(logrus.Fields{
 			"func_name": d.Name.Name,
-		}).Debug("[Decl] func is found")
+		}).Debug("[mutator] func is found")
 
-		var declBeforeMutate ast.FuncDecl
-		declBeforeMutate = *d
-		ast.Inspect(d, func(n ast.Node) bool {
-			switch node := n.(type) {
-			case *ast.AssignStmt:
-				// copiedNode := *node
-				bl, ok := node.Rhs[0].(*ast.BasicLit)
-				if ok && bl.Kind == token.INT {
-					node.Rhs = []ast.Expr{
-						&ast.BasicLit{
-							Kind:  token.INT,
-							Value: strconv.Itoa(math.MaxInt64),
-						},
-					}
-					// ここまではちゃんと機能してる
-					// appendができない
-					decls = append(decls, d)
-					// *node = copiedNode
-
-					*d = declBeforeMutate
-				}
-			}
-			return true
-		})
+		var copiedDecl ast.FuncDecl
+		copiedDecl = *d
+		funcDecls := m.MutateFuncDecl(&copiedDecl)
+		decls = append(decls, funcDecls...)
 
 	case *ast.GenDecl:
 		m.log.WithFields(logrus.Fields{
 			"func_name": d.Tok.String(),
-		}).Debug("[Decl] GenDecl is found")
+		}).Debug("[mutator] GenDecl is found")
 	}
+
 	return decls
+}
+
+func (m *Mutator) MutateFuncDecl(funcDecl *ast.FuncDecl) []ast.Decl {
+	funcDecls := []ast.Decl{}
+	copiedDecl := *funcDecl
+
+	ast.Inspect(funcDecl, func(n ast.Node) bool {
+		switch node := n.(type) {
+		case *ast.AssignStmt:
+			/*
+				var copiedNode ast.AssignStmt
+				copiedNode = *node
+				fmt.Printf("       node address: %p\n", node)
+				fmt.Printf("copied node address: %p\n", &copiedNode)
+				pp.Printf("node == copiedNode: %s\n", reflect.DeepEqual(node, &copiedNode))
+			*/
+
+			operator.ToMaxInt(node)
+			pp.Println(funcDecl)
+			// pp.Printf("node == copiedNode: %s\n", reflect.DeepEqual(node, &copiedNode))
+
+			funcDecls = append(funcDecls, funcDecl)
+			// nodeをもどしてもfuncDeclは変化したまま
+			// node = &copiedNode
+			// pp.Printf("node == copiedNode: %s\n", reflect.DeepEqual(node, &copiedNode))
+			funcDecl = &copiedDecl
+		}
+		return true
+	})
+	return funcDecls
 }
